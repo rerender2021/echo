@@ -2,3 +2,9 @@ node_modules
 build
 bin
 # .pkg-cache
+dist
+/*.traineddata
+
+asr-server
+nlp-server
+/config.json

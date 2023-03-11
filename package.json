@@ -1,29 +1,39 @@
 {
-  "name": "ave-react-template",
-  "version": "0.0.1",
-  "description": "quick start for ave-react",
-  "main": "src/app.js",
+  "name": "echo",
+  "version": "1.0.0",
+  "description": "A simple asr translator powered by avernakis react.",
+  "main": "dist/_/_/app.js",
+  "private": "true",
   "scripts": {
     "dev": "tsnd --respawn ./src/app.tsx",
     "dev:once": "ts-node ./src/app.tsx",
-    "prebuild": "del-cli ./build",
+    "prebuild": "del-cli ./build && del-cli ./dist",
     "build": "tsc",
-    "postbuild": "copyfiles ./assets/* ./build",
+    "postbuild": "npm run copy && npm run bundle",
+    "copy": "copyfiles -f ./node_modules/ave-ui/lib/* ./dist/lib && copyfiles ./assets/* ./dist",
+    "bundle": "rollup --config rollup.config.js",
     "prerelease": "npm run build",
     "release": "ave-pack pack"
   },
   "author": "ivjtk; rerender2021",
   "license": "MIT",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^23.0.2",
+    "@rollup/plugin-json": "^5.0.1",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@types/debounce": "^1.2.1",
     "@types/node": "^17.0.21",
     "@types/react": "^17.0.0",
     "ave-pack": "^0.9.4",
     "copyfiles": "^2.4.1",
     "del-cli": "^4.0.1",
+    "rollup": "^2.78.0",
     "ts-node-dev": "^1.1.8",
     "typescript": "^4.6.2"
   },
   "dependencies": {
-    "ave-react": "^0.1.2"
+    "ave-react": "^0.1.4",
+    "axios": "^1.3.2",
+    "debounce": "^1.2.1"
   }
 }

@@ -24,6 +24,6 @@ jobs:
                   CI: true
             - uses: actions/upload-artifact@v3
               with:
-                  name: ave-react-app
+                  name: echo
                   path: "bin"
                   if-no-files-found: error
