@@ -7,12 +7,16 @@ export const containerLayout = {
 };
 
 export const controlLayout = {
-	columns: `1`,
-	rows: `16dpx 32dpx 16dpx 32dpx 16dpx 32dpx 16dpx 32dpx 4dpx 1 32dpx 4dpx 150dpx`,
+	columns: `1 1 1 1 1`,
+	rows: `16dpx 32dpx 16dpx 32dpx 16dpx 32dpx 16dpx 32dpx 16dpx 16dpx 4dpx 1 32dpx 4dpx 150dpx`,
 	areas: {
-		measure: { row: 1, column: 0 },
-		recognize: { row: 3, column: 0 },
-		punct: { row: 5, column: 0 },
-		topmost: { row: 7, column: 0 },
+		measure: { row: 1, column: 0, columnSpan: 5 },
+		recognize: { row: 3, column: 0, columnSpan: 2 },
+		topmost: { row: 5, column: 0, columnSpan: 2 },
+		zh: { row: 7, column: 0, columnSpan: 2 },
+		en: { row: 7, column: 2, columnSpan: 2 },
+		fontSizeLabel: { row: 9, column: 0 },
+		fontSize: { row: 9, column: 1, columnSpan: 3 },
+		fontSizeValue: { row: 9, column: 4 }
 	},
 };

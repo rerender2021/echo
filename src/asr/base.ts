@@ -1,5 +1,14 @@
-export interface IAsrResult {
+export interface ISentence {
 	text: string;
+	time: number;
+	sessionId: number;
+	speechId: number;
+	asr?: string
+}
+
+export interface IAsrText {
+	text: string;
+	time: number;
 }
 
 export interface IAsrEngineOptions {
@@ -13,7 +22,7 @@ export interface IAsrEngineConstructor {
 }
 
 export interface IAsrEngine {
-	recognize(): Promise<IAsrResult>;
+	recognize(): Promise<ISentence>;
 	init(): void;
 	destroy(): void;
 }

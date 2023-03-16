@@ -1,12 +1,27 @@
 import { getAppContext } from "ave-react";
 import { IGridControl, Vec2, Grid as NativeGrid, Window as NativeWindow } from "ave-ui";
+import { ISentence } from "../asr";
+
+export interface ISubtitle {
+	zh: string;
+	en: string;
+	time: number;
+	sessionId: number;
+	speechId: number;
+}
+
+export interface ISubtitleConfig {
+	zh: boolean;
+	en: boolean;
+}
 
 export type ShadowRelatedType = {
-	prevAsrText: string;
+	prevSentence: ISentence;
 	prevTranslation: string;
 	shouldTranslate: boolean;
 	shouldRecognize: boolean;
-	shouldResotrePunct: boolean;
+	subtitleQueue: Array<ISubtitle>;
+	subtitleConfig: ISubtitleConfig;
 	measureWindow: NativeWindow;
 	selected: IGridControl<NativeGrid>;
 	start: Vec2;
@@ -19,15 +34,23 @@ export type ShadowRelatedType = {
 	displayWindow: NativeWindow;
 	defaultTopMost: boolean;
 	selectedAreaIsEmpty(): boolean;
-	onUpdateTranslationResult: (text: string) => void;
+	onUpdateTranslationResult: (subtitle: ISubtitle) => void;
+	onUpdateTranslationConfig: () => void;
+	onUpdateFontSize: (size: number) => void;
 };
 
+export const emptySentence: ISentence = { text: "", time: 0, speechId: 0, sessionId: 0 };
+
 export const shadowRelated: ShadowRelatedType = {
-	prevAsrText: "",
+	prevSentence: emptySentence,
 	prevTranslation: "",
 	shouldTranslate: false,
 	shouldRecognize: false,
-	shouldResotrePunct: false,
+	subtitleQueue: [],
+	subtitleConfig: {
+		en: true,
+		zh: true,
+	},
 	measureWindow: null,
 	selected: null,
 	start: null,
@@ -43,6 +66,8 @@ export const shadowRelated: ShadowRelatedType = {
 		return this.selectedArea.start.x === 0 && this.selectedArea.start.y === 0 && this.selectedArea.end.x === 0 && this.selectedArea.end.x === 0;
 	},
 	onUpdateTranslationResult: () => {},
+	onUpdateTranslationConfig: () => {},
+	onUpdateFontSize: () => {},
 };
 
 globalThis.shadowRelated = shadowRelated;

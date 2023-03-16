@@ -1,5 +1,5 @@
 import { safe, shadowRelated } from "./common";
-import { WindowFramePart, RichLabelColor, RichLabelBackColor, RichLabelTextColor, Rect, Byo2Font, AlignType, RichLabel as NativeRichLabel, IGridControl, DpiSize_2, DpiSize, CursorType, DockMode, Vec2, Vec4, Grid as NativeGrid, Window as NativeWindow, WindowFlag, WindowCreation, ImageContainerType, ImageData, ImageDimension, Byo2Image, AveImage, Picture as NativePicture, App, ThemePredefined_Dark, StretchMode, AveGetClipboard, CodeEditor as NativeEditor, ResourceSource, Byo2ImageCreation, Byo2ImageDataType, PixFormat } from "ave-ui";
+import { WindowFramePart, DpiMargin, RichLabelTextColor, Byo2Font, AlignType, RichLabel as NativeRichLabel, DpiSize, DockMode, Vec2, Vec4, Grid as NativeGrid, Window as NativeWindow, WindowFlag, WindowCreation } from "ave-ui";
 
 export const onDisplay = safe(async function () {
 	if (!shadowRelated.displayWindow) {
@@ -44,28 +44,82 @@ export const onDisplay = safe(async function () {
 					content.SetOpacity(0.5);
 					container.ControlAdd(content).SetDock(DockMode.Fill);
 
-					const label = new NativeRichLabel(shadowRelated.displayWindow);
+					function createSubtitle() {
+						const fd = shadowRelated.displayWindow.GetTheme().GetFont();
+						fd.Size = 24;
+						const fontDef = new Byo2Font(shadowRelated.displayWindow, fd);
 
-					const fd = shadowRelated.displayWindow.GetTheme().GetFont();
-					fd.Size = 24;
-					const fontDef = new Byo2Font(shadowRelated.displayWindow, fd);
+						const textColor = new RichLabelTextColor();
+						textColor.Text.Color = new Vec4(255, 255, 255, 255);
 
-					const textColor = new RichLabelTextColor();
-					textColor.Text.Color = new Vec4(255, 255, 255, 255);
+						const label = new NativeRichLabel(shadowRelated.displayWindow);
+						label.FmSetDefaultFont(fontDef);
+						label.FmSetDefaultTextColor(textColor);
 
-					label.FmSetDefaultFont(fontDef);
-					label.FmSetDefaultTextColor(textColor);
+						label.SetAlignHorz(AlignType.Near);
+						label.SetAlignVert(AlignType.Center);
+						return label;
+					}
 
-					label.SetAlignHorz(AlignType.Center);
-					label.SetAlignVert(AlignType.Center);
+					// TODO: crash when use ""
+					const en = createSubtitle();
+					const zh = createSubtitle();
+					en.SetText(" ");
+					zh.SetText(" ");
 
-					// TODO: crash when use "" 
-					label.SetText(" ");
-					shadowRelated.onUpdateTranslationResult = safe((text) => {
-						label.SetText(text);
+					const subtitle = new NativeGrid(shadowRelated.displayWindow);
+					subtitle.RowAddSlice(...[1]);
+					subtitle.RowAddDpx(...[2]);
+					subtitle.RowAddSlice(...[1]);
+					subtitle.ColAddSlice(...[1]);
+
+					const margin = new DpiMargin(
+						DpiSize.FromPixelScaled(50), // margin left
+						DpiSize.FromPixelScaled(5), // margin top
+						DpiSize.FromPixelScaled(50), // margin right
+						DpiSize.FromPixelScaled(5) // margin bottom
+					);
+					const enGrid = subtitle.ControlAdd(en).SetGrid(0, 0).SetMargin(margin);
+					const zhGrid = subtitle.ControlAdd(zh).SetGrid(0, 2).SetMargin(margin);
+					container.ControlAdd(subtitle).SetGrid(0, 0);
+
+					shadowRelated.onUpdateFontSize = safe((size: number) => {
+						const fd = shadowRelated.displayWindow.GetTheme().GetFont();
+						fd.Size = size;
+						const fontDef = new Byo2Font(shadowRelated.displayWindow, fd);
+
+						en.FmSetDefaultFont(fontDef);
+						zh.FmSetDefaultFont(fontDef);
+					});
+					shadowRelated.onUpdateTranslationResult = safe((subtitle: { zh: string; en: string }) => {
+						en.SetText(subtitle.en || " ");
+						zh.SetText(subtitle.zh || " ");
 					});
 
-					container.ControlAdd(label).SetGrid(0, 0);
+					shadowRelated.onUpdateTranslationConfig = safe(() => {
+						const config = shadowRelated.subtitleConfig;
+						if (config.en && !config.zh) {
+							enGrid.SetGrid(0, 0, 1, 3);
+							en.SetOpacity(1);
+							zh.SetOpacity(0);
+						} else if (!config.en && config.zh) {
+							zhGrid.SetGrid(0, 0, 1, 3);
+							en.SetOpacity(0);
+							zh.SetOpacity(1);
+						} else if (!config.en && !config.zh) {
+							en.SetOpacity(0);
+							enGrid.SetGrid(0, 0);
+							zh.SetOpacity(0);
+							zhGrid.SetGrid(0, 2);
+						} else if (config.en && config.zh) {
+							en.SetOpacity(1);
+							enGrid.SetGrid(0, 0);
+							zh.SetOpacity(1);
+							zhGrid.SetGrid(0, 2);
+						}
+
+						shadowRelated.displayWindow.Redraw();
+					});
 				}
 
 				shadowRelated.displayWindow.SetSize(new Vec2(shadowRelated.selectedArea.end.x - shadowRelated.selectedArea.start.x, shadowRelated.selectedArea.end.y - shadowRelated.selectedArea.start.y));

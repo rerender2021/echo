@@ -7,9 +7,10 @@ import { INlpEngine, INlpEngineOptions, ITranslateResult } from "./base";
 export class HelsinkiNlpEngine implements INlpEngine {
 	private options: INlpEngineOptions;
 	private nlp: childProcess.ChildProcessWithoutNullStreams;
-
+	private cache: Record<string, string>;
 	constructor(options: INlpEngineOptions) {
 		this.options = options;
+		this.cache = {};
 	}
 
 	async init() {
@@ -53,6 +54,9 @@ export class HelsinkiNlpEngine implements INlpEngine {
 
 	async translate(text: string): Promise<ITranslateResult> {
 		try {
+			if (this.cache[text]) {
+				return { text: this.cache[text] };
+			}
 			const timeout = this.options?.timeout || 3000;
 			const translated = await axios.post(
 				"http://localhost:8100/translate",
@@ -62,6 +66,7 @@ export class HelsinkiNlpEngine implements INlpEngine {
 				{ timeout }
 			);
 			const result = translated.data.result[0].translation_text;
+			this.cache[text] = result;
 			return { text: result };
 		} catch (error) {
 			console.log(`translate failed: ${error.message}`);

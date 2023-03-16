@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useMemo } from "react";
-import { AveRenderer, Grid, Window, getAppContext, IIconResource, IWindowComponentProps, Button, CheckBox, ICheckBoxComponentProps } from "ave-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { AveRenderer, Grid, Window, getAppContext, IIconResource, IWindowComponentProps, Button, CheckBox, ICheckBoxComponentProps, ScrollBar, Label, IScrollBarComponentProps } from "ave-react";
 import { App, ThemePredefined_Dark, CheckValue } from "ave-ui";
 import { VoskAsrEngine } from "./asr";
 import { HelsinkiNlpEngine } from "./nlp";
 import { containerLayout, controlLayout } from "./layout";
 import { iconResource } from "./resource";
-import { onMeasure, onTranslate, shadowRelated } from "./shadow";
+import { logger, onMeasure, onTranslate, shadowRelated } from "./shadow";
 import { getAsrConfig, getNlpConfig } from "./config";
 
 function onInit(app: App) {
@@ -18,6 +18,14 @@ function initTheme() {
 	const themeImage = context.getThemeImage();
 	const themeDark = new ThemePredefined_Dark();
 	themeDark.SetStyle(themeImage, 0);
+}
+
+enum ButtonText {
+	Measure = "设置字幕区",
+	Recognize = "语音识别",
+	SetTopMost = "字幕置顶",
+	SubtitleEn = "英文字幕",
+	SubtitleZh = "中文字幕",
 }
 
 export function Echo() {
@@ -57,29 +65,39 @@ export function Echo() {
 	}, []);
 
 	const onSetRecognize = useCallback<ICheckBoxComponentProps["onCheck"]>((sender) => {
+		shadowRelated.subtitleQueue = [];
+
 		let shouldRecognize = false;
 
 		const checkValue = sender.GetValue();
 		if (checkValue === CheckValue.Unchecked) {
 			shouldRecognize = false;
+			logger.end();
 		} else if (checkValue === CheckValue.Checked) {
 			shouldRecognize = true;
+			logger.start();
 		}
 
 		shadowRelated.shouldRecognize = shouldRecognize;
 	}, []);
 
-	const onSetPunct = useCallback<ICheckBoxComponentProps["onCheck"]>((sender) => {
-		let shouldResotrePunct = false;
-
+	const onSetDisplaySubtitle = useCallback<ICheckBoxComponentProps["onCheck"]>((sender) => {
 		const checkValue = sender.GetValue();
-		if (checkValue === CheckValue.Unchecked) {
-			shouldResotrePunct = false;
-		} else if (checkValue === CheckValue.Checked) {
-			shouldResotrePunct = true;
+		const text = sender.GetText();
+		const isChecked = checkValue === CheckValue.Checked;
+		if (text === ButtonText.SubtitleEn) {
+			shadowRelated.subtitleConfig.en = isChecked;
+		} else if (text === ButtonText.SubtitleZh) {
+			shadowRelated.subtitleConfig.zh = isChecked;
 		}
+		shadowRelated.onUpdateTranslationConfig();
+	}, []);
 
-		shadowRelated.shouldResotrePunct = shouldResotrePunct;
+	const [fontSize, setFontSize] = useState(24);
+	const onSetFontSize = useCallback<IScrollBarComponentProps["onScrolling"]>((sender) => {
+		const fontSize = sender.GetValue();
+		shadowRelated.onUpdateFontSize(fontSize);
+		setFontSize(fontSize);
 	}, []);
 
 	useEffect(() => {
@@ -94,16 +112,28 @@ export function Echo() {
 			<Grid style={{ layout: containerLayout }}>
 				<Grid style={{ area: containerLayout.areas.control, layout: controlLayout }}>
 					<Grid style={{ area: controlLayout.areas.measure }}>
-						<Button text="设置字幕区" iconInfo={{ name: "measure", size: 16 }} onClick={onMeasure}></Button>
+						<Button text={ButtonText.Measure} iconInfo={{ name: "measure", size: 16 }} onClick={onMeasure}></Button>
 					</Grid>
 					<Grid style={{ area: controlLayout.areas.recognize }}>
-						<CheckBox text="语音识别" value={CheckValue.Unchecked} onCheck={onSetRecognize}></CheckBox>
-					</Grid>
-					<Grid style={{ area: controlLayout.areas.punct }}>
-						<CheckBox text="标点恢复" value={CheckValue.Unchecked} onCheck={onSetPunct}></CheckBox>
+						<CheckBox text={ButtonText.Recognize} value={CheckValue.Unchecked} onCheck={onSetRecognize}></CheckBox>
 					</Grid>
 					<Grid style={{ area: controlLayout.areas.topmost }}>
-						<CheckBox text="字幕置顶" value={CheckValue.Checked} onCheck={onSetTopMost}></CheckBox>
+						<CheckBox text={ButtonText.SetTopMost} value={CheckValue.Checked} onCheck={onSetTopMost}></CheckBox>
+					</Grid>
+					<Grid style={{ area: controlLayout.areas.en }}>
+						<CheckBox text={ButtonText.SubtitleEn} value={CheckValue.Checked} onCheck={onSetDisplaySubtitle}></CheckBox>
+					</Grid>
+					<Grid style={{ area: controlLayout.areas.zh }}>
+						<CheckBox text={ButtonText.SubtitleZh} value={CheckValue.Checked} onCheck={onSetDisplaySubtitle}></CheckBox>
+					</Grid>
+					<Grid style={{ area: controlLayout.areas.fontSizeLabel }}>
+						<Label text="字体大小"></Label>
+					</Grid>
+					<Grid style={{ area: controlLayout.areas.fontSize, margin: "10dpx 0 10dpx 0" }}>
+						<ScrollBar min={10} max={50} value={24} /** default value */ onScrolling={onSetFontSize}></ScrollBar>
+					</Grid>
+					<Grid style={{ area: controlLayout.areas.fontSizeValue }}>
+						<Label text={`${fontSize}`}></Label>
 					</Grid>
 				</Grid>
 			</Grid>

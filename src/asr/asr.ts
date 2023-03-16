@@ -2,15 +2,18 @@ import axios from "axios";
 import path from "path";
 import fs from "fs";
 import childProcess from "child_process";
-import { IAsrEngine, IAsrEngineOptions, IAsrResult } from "./base";
-import { shadowRelated } from "../shadow";
+import { IAsrEngine, IAsrEngineOptions, ISentence } from "./base";
+import { TranslationSession } from "./postasr";
+import { emptySentence } from "../shadow";
 
 export class VoskAsrEngine implements IAsrEngine {
 	private options: IAsrEngineOptions;
 	private asr: childProcess.ChildProcessWithoutNullStreams;
+	private sessionList: Array<TranslationSession>;
 
 	constructor(options: IAsrEngineOptions) {
 		this.options = options;
+		this.sessionList = [];
 	}
 
 	async init() {
@@ -53,29 +56,55 @@ export class VoskAsrEngine implements IAsrEngine {
 		}
 	}
 
-	async recognize(): Promise<IAsrResult> {
-		// const base64 = buffer.toString("base64");
-		let text = "";
+	getCurrentSession() {
+		return this.sessionList[this.sessionList.length - 1] || null;
+	}
+
+	async addAsrTextToSession(asrText: string, time: number) {
+		if (!asrText) {
+			const session = this.getCurrentSession();
+			if (session) {
+				// handle only one speech case
+				await session.flushSpeech();
+
+				// create new session if the last is not empty
+				if (!session.isEmpty()) {
+					const newSession = new TranslationSession();
+					this.sessionList.push(newSession);
+				}
+			} else {
+				// it's the first session
+				this.sessionList.push(new TranslationSession());
+			}
+			return;
+		}
+
+		const session = this.getCurrentSession();
+		if (session) {
+			await session.addAsrText(asrText, time);
+		}
+	}
+
+	async recognize(): Promise<ISentence> {
+		let sentence: ISentence = emptySentence;
 		try {
 			const timeout = this.options?.timeout || 3000;
 			const response = await axios.post("http://localhost:8200/asr", {}, { timeout });
-			const data = JSON.parse(response.data.result);
-			console.log(data);
+			console.log(response.data);
 
-			text = data.partial || data.text || "";
+			const data = JSON.parse(response?.data?.result || "{}");
 
-			if (text && shadowRelated.shouldResotrePunct) {
-				const withPunctResponse = await axios.post("http://localhost:8200/punct", { text }, { timeout });
-				if (withPunctResponse.data.text) {
-					text = withPunctResponse.data.text;
-					console.log({ text });
-				}
-			}
+			const asrText = data.partial || "";
+			await this.addAsrTextToSession(asrText, Date.now());
+
+			const session = this.getCurrentSession();
+			sentence = session.getCurrentSentence();
+			sentence.asr = asrText;
 		} catch (error) {
 			console.log(`asr failed: ${error.message}`);
 			this.options?.onError(error.message);
 		} finally {
-			return { text };
+			return sentence;
 		}
 	}
 }
