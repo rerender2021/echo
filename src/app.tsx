@@ -1,12 +1,13 @@
-import React, { useCallback, useEffect, useMemo } from "react";
-import { AveRenderer, Grid, Window, getAppContext, IIconResource, IWindowComponentProps, Button, CheckBox, ICheckBoxComponentProps } from "ave-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { AveRenderer, Grid, Window, getAppContext, IIconResource, IWindowComponentProps, Button, CheckBox, ICheckBoxComponentProps, ScrollBar, Label, IScrollBarComponentProps } from "ave-react";
 import { App, ThemePredefined_Dark, CheckValue } from "ave-ui";
 import { VoskAsrEngine } from "./asr";
 import { HelsinkiNlpEngine } from "./nlp";
 import { containerLayout, controlLayout } from "./layout";
 import { iconResource } from "./resource";
-import { onMeasure, onTranslate, shadowRelated } from "./shadow";
+import { onMeasure, onTranslate, safe, shadowRelated } from "./shadow";
 import { getAsrConfig, getNlpConfig } from "./config";
+import axios from "axios";
 
 function onInit(app: App) {
 	const context = getAppContext();
@@ -18,6 +19,15 @@ function initTheme() {
 	const themeImage = context.getThemeImage();
 	const themeDark = new ThemePredefined_Dark();
 	themeDark.SetStyle(themeImage, 0);
+}
+
+enum ButtonText {
+	Measure = "设置字幕区",
+	Recognize = "语音识别",
+	BreakLongText = "长句分解",
+	SetTopMost = "字幕置顶",
+	SubtitleEn = "英文字幕",
+	SubtitleZh = "中文字幕",
 }
 
 export function Echo() {
@@ -57,11 +67,14 @@ export function Echo() {
 	}, []);
 
 	const onSetRecognize = useCallback<ICheckBoxComponentProps["onCheck"]>((sender) => {
+		shadowRelated.subtitleQueue = [];
+
 		let shouldRecognize = false;
 
 		const checkValue = sender.GetValue();
 		if (checkValue === CheckValue.Unchecked) {
 			shouldRecognize = false;
+			shadowRelated.onUpdateTranslationResult({ en: "", zh: "" });
 		} else if (checkValue === CheckValue.Checked) {
 			shouldRecognize = true;
 		}
@@ -69,41 +82,87 @@ export function Echo() {
 		shadowRelated.shouldRecognize = shouldRecognize;
 	}, []);
 
-	const onSetPunct = useCallback<ICheckBoxComponentProps["onCheck"]>((sender) => {
-		let shouldResotrePunct = false;
+	const onSetBreakLongText = useCallback<ICheckBoxComponentProps["onCheck"]>((sender) => {
+		let value = false;
 
 		const checkValue = sender.GetValue();
 		if (checkValue === CheckValue.Unchecked) {
-			shouldResotrePunct = false;
+			value = false;
 		} else if (checkValue === CheckValue.Checked) {
-			shouldResotrePunct = true;
+			value = true;
 		}
 
-		shadowRelated.shouldResotrePunct = shouldResotrePunct;
+		shadowRelated.shouldBreakLongText = value;
 	}, []);
+
+	const onSetDisplaySubtitle = useCallback<ICheckBoxComponentProps["onCheck"]>((sender) => {
+		const checkValue = sender.GetValue();
+		const text = sender.GetText();
+		const isChecked = checkValue === CheckValue.Checked;
+		if (text === ButtonText.SubtitleEn) {
+			shadowRelated.subtitleConfig.en = isChecked;
+		} else if (text === ButtonText.SubtitleZh) {
+			shadowRelated.subtitleConfig.zh = isChecked;
+		}
+		shadowRelated.onUpdateTranslationConfig();
+	}, []);
+
+	const [fontSize, setFontSize] = useState(16);
+	const onSetFontSize = useCallback<IScrollBarComponentProps["onScrolling"]>((sender) => {
+		const fontSize = sender.GetValue();
+		shadowRelated.onUpdateFontSize(fontSize);
+		setFontSize(fontSize);
+	}, []);
+
+	const [title, setTitle] = useState("Echo");
 
 	useEffect(() => {
 		initTheme();
 		asrEngine.init();
-		nlpEngine.init();
+		nlpEngine.init().then(
+			safe(async () => {
+				const response = await axios.get("http://localhost:8100/gpu");
+				if (response.data.gpu === "True") {
+					console.log("great! use gpu");
+					setTitle("Echo (GPU)");
+				} else {
+					console.log("gpu is not available");
+				}
+			})
+		);
 		onTranslate(asrEngine, nlpEngine);
 	}, []);
 
 	return (
-		<Window title="Echo" size={{ width: 260, height: 350 }} onInit={onInit} onClose={onClose}>
+		<Window title={title} size={{ width: 260, height: 350 }} onInit={onInit} onClose={onClose}>
 			<Grid style={{ layout: containerLayout }}>
 				<Grid style={{ area: containerLayout.areas.control, layout: controlLayout }}>
 					<Grid style={{ area: controlLayout.areas.measure }}>
-						<Button text="设置字幕区" iconInfo={{ name: "measure", size: 16 }} onClick={onMeasure}></Button>
+						<Button text={ButtonText.Measure} iconInfo={{ name: "measure", size: 16 }} onClick={onMeasure}></Button>
 					</Grid>
 					<Grid style={{ area: controlLayout.areas.recognize }}>
-						<CheckBox text="语音识别" value={CheckValue.Unchecked} onCheck={onSetRecognize}></CheckBox>
+						<CheckBox text={ButtonText.Recognize} value={CheckValue.Unchecked} onCheck={onSetRecognize}></CheckBox>
 					</Grid>
-					<Grid style={{ area: controlLayout.areas.punct }}>
-						<CheckBox text="标点恢复" value={CheckValue.Unchecked} onCheck={onSetPunct}></CheckBox>
+					<Grid style={{ area: controlLayout.areas.breakLongText }}>
+						<CheckBox text={ButtonText.BreakLongText} value={CheckValue.Unchecked} onCheck={onSetBreakLongText}></CheckBox>
 					</Grid>
 					<Grid style={{ area: controlLayout.areas.topmost }}>
-						<CheckBox text="字幕置顶" value={CheckValue.Checked} onCheck={onSetTopMost}></CheckBox>
+						<CheckBox text={ButtonText.SetTopMost} value={CheckValue.Checked} onCheck={onSetTopMost}></CheckBox>
+					</Grid>
+					<Grid style={{ area: controlLayout.areas.en }}>
+						<CheckBox text={ButtonText.SubtitleEn} value={CheckValue.Checked} onCheck={onSetDisplaySubtitle}></CheckBox>
+					</Grid>
+					<Grid style={{ area: controlLayout.areas.zh }}>
+						<CheckBox text={ButtonText.SubtitleZh} value={CheckValue.Checked} onCheck={onSetDisplaySubtitle}></CheckBox>
+					</Grid>
+					<Grid style={{ area: controlLayout.areas.fontSizeLabel }}>
+						<Label text="字体大小"></Label>
+					</Grid>
+					<Grid style={{ area: controlLayout.areas.fontSize, margin: "10dpx 0 10dpx 0" }}>
+						<ScrollBar min={10} max={50} value={16} /** default value */ onScrolling={onSetFontSize}></ScrollBar>
+					</Grid>
+					<Grid style={{ area: controlLayout.areas.fontSizeValue }}>
+						<Label text={`${fontSize}`}></Label>
 					</Grid>
 				</Grid>
 			</Grid>

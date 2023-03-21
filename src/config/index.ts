@@ -5,7 +5,7 @@ import { INlpEngineOptions } from "../nlp/base";
 
 const defaultConfig = {
 	/** timeout for asr and translate api call*/
-	timeout: 4000,
+	timeout: 3500,
 };
 
 export function getConfig() {

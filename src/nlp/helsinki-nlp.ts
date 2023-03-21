@@ -7,23 +7,39 @@ import { INlpEngine, INlpEngineOptions, ITranslateResult } from "./base";
 export class HelsinkiNlpEngine implements INlpEngine {
 	private options: INlpEngineOptions;
 	private nlp: childProcess.ChildProcessWithoutNullStreams;
-
+	private cache: Record<string, string>;
 	constructor(options: INlpEngineOptions) {
 		this.options = options;
+		this.cache = {};
+	}
+
+	getNlpPath() {
+		const gpu = path.resolve(process.cwd(), "nlp-gpu-server");
+		if (fs.existsSync(gpu)) {
+			console.log("nlp-gpu-server exists! use it");
+			return { nlpDir: gpu, exePath: path.resolve(gpu, "./NLP-GPU-API.exe") };
+		}
+
+		const cpu = path.resolve(process.cwd(), "nlp-server");
+		if (fs.existsSync(cpu)) {
+			console.log("use nlp-server");
+			return { nlpDir: cpu, exePath: path.resolve(cpu, "./NLP-API.exe") };
+		}
+
+		return { nlpDir: "", exePath: "" };
 	}
 
 	async init() {
 		console.log("try to init nlp engine");
-		const nlpDir = path.resolve(process.cwd(), "nlp-server");
-		if (fs.existsSync(nlpDir)) {
+		const { nlpDir, exePath } = this.getNlpPath();
+		if (nlpDir && exePath) {
 			return new Promise((resolve, reject) => {
 				console.log("nlpDir exists, start nlp server", nlpDir);
-
-				const nlp = childProcess.spawn(`./nlp-server/NLP-API.exe`, [`--lang-from=en`, `--lang-to=zh`, `--model-dir=.\\model`], { windowsHide: true, detached: false /** hide console */ });
+				const nlp = childProcess.spawn(exePath, [`--lang-from=en`, `--lang-to=zh`, `--model-dir=.\\model`], { windowsHide: true, detached: false /** hide console */ });
 				this.nlp = nlp;
 				nlp.stdout.on("data", (data) => {
 					console.log(`stdout: ${data}`);
-					if (data.includes("nlp server has been started")) {
+					if (data.includes("has been started")) {
 						console.log("nlp server started");
 						resolve(true);
 					}
@@ -53,7 +69,10 @@ export class HelsinkiNlpEngine implements INlpEngine {
 
 	async translate(text: string): Promise<ITranslateResult> {
 		try {
-			const timeout = this.options?.timeout || 3000;
+			if (this.cache[text]) {
+				return { text: this.cache[text] };
+			}
+			const timeout = this.options?.timeout || 1000;
 			const translated = await axios.post(
 				"http://localhost:8100/translate",
 				{
@@ -62,6 +81,7 @@ export class HelsinkiNlpEngine implements INlpEngine {
 				{ timeout }
 			);
 			const result = translated.data.result[0].translation_text;
+			this.cache[text] = result;
 			return { text: result };
 		} catch (error) {
 			console.log(`translate failed: ${error.message}`);
