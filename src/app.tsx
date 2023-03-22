@@ -115,10 +115,15 @@ export function Echo() {
 	}, []);
 
 	const [title, setTitle] = useState("Echo");
+	const [asrReady, setAsrReady] = useState(false);
 
 	useEffect(() => {
 		initTheme();
-		asrEngine.init();
+		asrEngine.init().then(
+			safe(() => {
+				setAsrReady(true);
+			})
+		);
 		nlpEngine.init().then(
 			safe(async () => {
 				const response = await axios.get("http://localhost:8100/gpu");
@@ -140,30 +145,38 @@ export function Echo() {
 					<Grid style={{ area: controlLayout.areas.measure }}>
 						<Button text={ButtonText.Measure} iconInfo={{ name: "measure", size: 16 }} onClick={onMeasure}></Button>
 					</Grid>
-					<Grid style={{ area: controlLayout.areas.recognize }}>
-						<CheckBox text={ButtonText.Recognize} value={CheckValue.Unchecked} onCheck={onSetRecognize}></CheckBox>
-					</Grid>
-					<Grid style={{ area: controlLayout.areas.breakLongText }}>
-						<CheckBox text={ButtonText.BreakLongText} value={CheckValue.Unchecked} onCheck={onSetBreakLongText}></CheckBox>
-					</Grid>
-					<Grid style={{ area: controlLayout.areas.topmost }}>
-						<CheckBox text={ButtonText.SetTopMost} value={CheckValue.Checked} onCheck={onSetTopMost}></CheckBox>
-					</Grid>
-					<Grid style={{ area: controlLayout.areas.en }}>
-						<CheckBox text={ButtonText.SubtitleEn} value={CheckValue.Checked} onCheck={onSetDisplaySubtitle}></CheckBox>
-					</Grid>
-					<Grid style={{ area: controlLayout.areas.zh }}>
-						<CheckBox text={ButtonText.SubtitleZh} value={CheckValue.Checked} onCheck={onSetDisplaySubtitle}></CheckBox>
-					</Grid>
-					<Grid style={{ area: controlLayout.areas.fontSizeLabel }}>
-						<Label text="字体大小"></Label>
-					</Grid>
-					<Grid style={{ area: controlLayout.areas.fontSize, margin: "10dpx 0 10dpx 0" }}>
-						<ScrollBar min={10} max={50} value={16} /** default value */ onScrolling={onSetFontSize}></ScrollBar>
-					</Grid>
-					<Grid style={{ area: controlLayout.areas.fontSizeValue }}>
-						<Label text={`${fontSize}`}></Label>
-					</Grid>
+					{asrReady ? (
+						<>
+							<Grid style={{ area: controlLayout.areas.recognize }}>
+								<CheckBox text={ButtonText.Recognize} value={CheckValue.Unchecked} onCheck={onSetRecognize}></CheckBox>
+							</Grid>
+							<Grid style={{ area: controlLayout.areas.breakLongText }}>
+								<CheckBox text={ButtonText.BreakLongText} value={CheckValue.Unchecked} onCheck={onSetBreakLongText}></CheckBox>
+							</Grid>
+							<Grid style={{ area: controlLayout.areas.topmost }}>
+								<CheckBox text={ButtonText.SetTopMost} value={CheckValue.Checked} onCheck={onSetTopMost}></CheckBox>
+							</Grid>
+							<Grid style={{ area: controlLayout.areas.en }}>
+								<CheckBox text={ButtonText.SubtitleEn} value={CheckValue.Checked} onCheck={onSetDisplaySubtitle}></CheckBox>
+							</Grid>
+							<Grid style={{ area: controlLayout.areas.zh }}>
+								<CheckBox text={ButtonText.SubtitleZh} value={CheckValue.Checked} onCheck={onSetDisplaySubtitle}></CheckBox>
+							</Grid>
+							<Grid style={{ area: controlLayout.areas.fontSizeLabel }}>
+								<Label text="字体大小"></Label>
+							</Grid>
+							<Grid style={{ area: controlLayout.areas.fontSize, margin: "10dpx 0 10dpx 0" }}>
+								<ScrollBar min={10} max={50} value={16} /** default value */ onScrolling={onSetFontSize}></ScrollBar>
+							</Grid>
+							<Grid style={{ area: controlLayout.areas.fontSizeValue }}>
+								<Label text={`${fontSize}`}></Label>
+							</Grid>
+						</>
+					) : (
+						<Grid style={{ area: controlLayout.areas.recognize }}>
+							<Label text="初始化中..."></Label>
+						</Grid>
+					)}
 				</Grid>
 			</Grid>
 		</Window>
