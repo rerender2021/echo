@@ -10,7 +10,7 @@ export const onTranslate = async function (asrEngine: IAsrEngine, nlpEngine: INl
 
 let prevLength = Number.MAX_SAFE_INTEGER;
 let lastUpdateTime = Date.now();
-const subtitleDelay = 1000;
+const subtitleDelay = 250;
 
 const _onUpdateSubtitle = async function () {
 	try {
@@ -31,7 +31,6 @@ const _onUpdateSubtitle = async function () {
 			shadowRelated.onUpdateTranslationResult(current);
 			prevLength = current.en.length || 0;
 			lastUpdateTime = Date.now();
-			await sleep(500);
 		}
 	} catch (error) {
 		console.error("recognize failed", error);
