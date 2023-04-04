@@ -6,5 +6,11 @@ dist
 /*.traineddata
 
 asr-server
+asr-server-*
 nlp-server
+nlp-gpu-server
 /config.json
+subtitle
+perf
+log
+*.exe

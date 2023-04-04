@@ -2,30 +2,54 @@ import axios from "axios";
 import path from "path";
 import fs from "fs";
 import childProcess from "child_process";
-import { IAsrEngine, IAsrEngineOptions, IAsrResult } from "./base";
-import { shadowRelated } from "../shadow";
+import { IAsrEngine, IAsrEngineOptions, ISentence } from "./base";
+import { emptySentence, shadowRelated } from "../shadow";
+import { postasr } from "./postasr";
+
+enum AsrVersion {
+	v100,
+	v110,
+}
 
 export class VoskAsrEngine implements IAsrEngine {
 	private options: IAsrEngineOptions;
 	private asr: childProcess.ChildProcessWithoutNullStreams;
+	private version: AsrVersion;
 
 	constructor(options: IAsrEngineOptions) {
 		this.options = options;
+		this.version = AsrVersion.v100;
+	}
+
+	getAsrPath() {
+		const v110 = path.resolve(process.cwd(), "asr-server-v1.1.0");
+		if (fs.existsSync(v110)) {
+			this.version = AsrVersion.v110;
+			console.log("use asr-server-v1.1.0");
+			return { asrDir: v110, exePath: path.resolve(v110, "./ASR-API.exe") };
+		}
+
+		const v100 = path.resolve(process.cwd(), "asr-server");
+		if (fs.existsSync(v100)) {
+			console.log("use asr-server-v1.0.0");
+			return { asrDir: v100, exePath: path.resolve(v100, "./ASR-API.exe") };
+		}
+
+		return { asrDir: "", exePath: "" };
 	}
 
 	async init() {
 		console.log("try to init vosk asr engine");
-		const asrDir = path.resolve(process.cwd(), "asr-server");
-		const exePath = path.resolve(asrDir, "./ASR-API.exe");
-		if (fs.existsSync(asrDir) && fs.existsSync(exePath)) {
+		const { asrDir, exePath } = this.getAsrPath();
+		if (asrDir && exePath) {
 			return new Promise((resolve, reject) => {
 				console.log("asrDir exists, start asr server", asrDir);
 
-				const asr = childProcess.spawn(`./asr-server/ASR-API.exe`, [], { windowsHide: true, detached: false /** hide console */ });
+				const asr = childProcess.spawn(exePath, [], { windowsHide: true, detached: false /** hide console */ });
 				this.asr = asr;
 				asr.stdout.on("data", (data) => {
 					console.log(`stdout: ${data}`);
-					if (data.includes("ASR-API has been started")) {
+					if (data.includes("has been started")) {
 						console.log("asr server started");
 						resolve(true);
 					}
@@ -53,29 +77,49 @@ export class VoskAsrEngine implements IAsrEngine {
 		}
 	}
 
-	async recognize(): Promise<IAsrResult> {
-		// const base64 = buffer.toString("base64");
-		let text = "";
+	private async asrApi(): Promise<string> {
+		if (this.version === AsrVersion.v100) {
+			const response = await axios.post("http://localhost:8200/asr", {}, { timeout: 2000 });
+			const result = response?.data?.result;
+			const data = JSON.parse(result || "{}");
+			const asrText = data.partial || "";
+			return asrText;
+		} else {
+			const response = await axios.post("http://localhost:8200/asr_queue", {}, { timeout: 1000 });
+			const result = response?.data?.result;
+			const data = JSON.parse(result[result.length - 1] || "{}");
+			const asrText = data.partial || "";
+			return asrText;
+		}
+	}
+
+	async getAsrResult(): Promise<string> {
+		let asrResult = "";
 		try {
-			const timeout = this.options?.timeout || 3000;
-			const response = await axios.post("http://localhost:8200/asr", {}, { timeout });
-			const data = JSON.parse(response.data.result);
-			console.log(data);
+			asrResult = await this.asrApi();
+		} catch (error) {
+			console.log(`asr failed: ${error.message}`);
+		} finally {
+			return asrResult;
+		}
+	}
 
-			text = data.partial || data.text || "";
+	async recognize(): Promise<ISentence> {
+		let sentence: ISentence = emptySentence;
+		try {
+			const asrText = await this.getAsrResult();
 
-			if (text && shadowRelated.shouldResotrePunct) {
-				const withPunctResponse = await axios.post("http://localhost:8200/punct", { text }, { timeout });
-				if (withPunctResponse.data.text) {
-					text = withPunctResponse.data.text;
-					console.log({ text });
-				}
+			if (shadowRelated.shouldBreakLongText) {
+				const result = await postasr(asrText);
+				sentence = { text: result, asr: asrText };
+			} else {
+				sentence = { text: asrText, asr: asrText };
 			}
 		} catch (error) {
 			console.log(`asr failed: ${error.message}`);
 			this.options?.onError(error.message);
 		} finally {
-			return { text };
+			return sentence;
 		}
 	}
 }
