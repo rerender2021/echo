@@ -10,7 +10,7 @@ export const onTranslate = async function (asrEngine: IAsrEngine, nlpEngine: INl
 
 let prevLength = Number.MAX_SAFE_INTEGER;
 let lastUpdateTime = Date.now();
-const subtitleDelay = 250;
+const subtitleDelay = 1000;
 
 const _onUpdateSubtitle = async function () {
 	try {
