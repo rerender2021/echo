@@ -19,7 +19,10 @@
 
 演示视频见:
 
-- [回声：实时英语语音翻译](https://www.bilibili.com/video/BV11L411d7HE/)
+- v1.0.0: [回声：实时英语语音翻译](https://www.bilibili.com/video/BV11L411d7HE/)
+
+- v1.1.0: [回声更新：支持使用GPU & 长句分解](https://www.bilibili.com/video/BV1Qa4y1M7jV/)
+
 
 # 使用说明
 
@@ -36,8 +39,8 @@
 
 开发过程中需要确保本机启动了语音识别服务器和翻译服务器。
 
--   语音识别服务器：https://github.com/rerender2021/ASR-API/releases/tag/1.0.0
--   翻译服务器：https://github.com/rerender2021/NLP-API/releases/tag/1.0.1
+-   语音识别服务器：[ASR-API 1.1.0](https://github.com/rerender2021/ASR-API/releases/download/1.1.0/asr-server-v1.1.0.zip)
+-   翻译服务器：[NLP-API 1.0.1](https://github.com/rerender2021/NLP-API/releases/download/1.0.1/NLP-API-v1.0.1.zip)
 
 下载它们，并解压到项目下，确保项目目录结构如下：
 
@@ -45,7 +48,27 @@
 - nlp-server
     - NLP-API.exe
     - ...
-- asr-server
+- asr-server-v1.1.0
+    - ASR-API.exe
+    - ...
+- src
+- ...
+- package.json
+```
+
+如需使用GPU：
+
+- GPU翻译服务器：下载链接中的2个压缩分卷并解压缩（文件太大，只能分卷压缩上传）
+  - [NLP-GPU-API 1.0.0](https://github.com/rerender2021/NLP-GPU-API/releases/tag/1.0.0) 
+
+
+下载后，解压到项目下，确保项目目录结构如下：
+
+```
+- nlp-gpu-server
+    - NLP-GPU-API.exe
+    - ...
+- asr-server-v1.1.0
     - ASR-API.exe
     - ...
 - src
@@ -69,8 +92,6 @@
 ```bash
 > npm run release
 ```
-
--   将 `asr-server` 和 `nlp-server` 复制到 `bin` 目录中，和 exe 一起压缩打包。
 
 # 开源协议
 
