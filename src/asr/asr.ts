@@ -7,8 +7,7 @@ import { emptySentence, shadowRelated } from "../shadow";
 import { postasr } from "./postasr";
 
 enum AsrVersion {
-	v100,
-	v110,
+	v120,
 }
 
 export class VoskAsrEngine implements IAsrEngine {
@@ -18,21 +17,17 @@ export class VoskAsrEngine implements IAsrEngine {
 
 	constructor(options: IAsrEngineOptions) {
 		this.options = options;
-		this.version = AsrVersion.v100;
+		this.version = AsrVersion.v120;
 	}
 
 	getAsrPath() {
-		const v110 = path.resolve(process.cwd(), "asr-server-v1.1.0");
-		if (fs.existsSync(v110)) {
-			this.version = AsrVersion.v110;
-			console.log("use asr-server-v1.1.0");
-			return { asrDir: v110, exePath: path.resolve(v110, "./ASR-API.exe") };
-		}
-
-		const v100 = path.resolve(process.cwd(), "asr-server");
-		if (fs.existsSync(v100)) {
-			console.log("use asr-server-v1.0.0");
-			return { asrDir: v100, exePath: path.resolve(v100, "./ASR-API.exe") };
+		const v120 = path.resolve(process.cwd(), "asr-server-v1.2.0");
+		if (fs.existsSync(v120)) {
+			this.version = AsrVersion.v120;
+			console.log("use asr-server-v1.2.0");
+			return { asrDir: v120, exePath: path.resolve(v120, "./ASR-API.exe") };
+		} else {
+			console.error("this version of echo requires >= asr-server-v1.2.0!");
 		}
 
 		return { asrDir: "", exePath: "" };
@@ -81,19 +76,15 @@ export class VoskAsrEngine implements IAsrEngine {
 	private async asrApi(): Promise<string> {
 		const port = this.options.asrPort;
 
-		if (this.version === AsrVersion.v100) {
-			const response = await axios.post(`http://localhost:${port}/asr`, {}, { timeout: 2000 });
-			const result = response?.data?.result;
-			const data = JSON.parse(result || "{}");
-			const asrText = data.partial || "";
-			return asrText;
-		} else {
+		if (this.version === AsrVersion.v120) {
 			const response = await axios.post(`http://localhost:${port}/asr_queue`, {}, { timeout: 1000 });
 			const result = response?.data?.result;
 			const data = JSON.parse(result[result.length - 1] || "{}");
 			const asrText = data.partial || "";
 			return asrText;
 		}
+
+		return "";
 	}
 
 	async getAsrResult(): Promise<string> {
