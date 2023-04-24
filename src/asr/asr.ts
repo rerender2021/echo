@@ -45,7 +45,8 @@ export class VoskAsrEngine implements IAsrEngine {
 			return new Promise((resolve, reject) => {
 				console.log("asrDir exists, start asr server", asrDir);
 
-				const asr = childProcess.spawn(exePath, [], { windowsHide: true, detached: false /** hide console */ });
+				const port = this.options.asrPort;
+				const asr = childProcess.spawn(exePath, [`--port=${port}`], { windowsHide: true, detached: false /** hide console */ });
 				this.asr = asr;
 				asr.stdout.on("data", (data) => {
 					console.log(`stdout: ${data}`);
@@ -78,14 +79,16 @@ export class VoskAsrEngine implements IAsrEngine {
 	}
 
 	private async asrApi(): Promise<string> {
+		const port = this.options.asrPort;
+
 		if (this.version === AsrVersion.v100) {
-			const response = await axios.post("http://localhost:8200/asr", {}, { timeout: 2000 });
+			const response = await axios.post(`http://localhost:${port}/asr`, {}, { timeout: 2000 });
 			const result = response?.data?.result;
 			const data = JSON.parse(result || "{}");
 			const asrText = data.partial || "";
 			return asrText;
 		} else {
-			const response = await axios.post("http://localhost:8200/asr_queue", {}, { timeout: 1000 });
+			const response = await axios.post(`http://localhost:${port}/asr_queue`, {}, { timeout: 1000 });
 			const result = response?.data?.result;
 			const data = JSON.parse(result[result.length - 1] || "{}");
 			const asrText = data.partial || "";

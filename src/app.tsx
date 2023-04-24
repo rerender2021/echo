@@ -6,7 +6,7 @@ import { HelsinkiNlpEngine } from "./nlp";
 import { containerLayout, controlLayout } from "./layout";
 import { iconResource } from "./resource";
 import { onMeasure, onTranslate, safe, shadowRelated } from "./shadow";
-import { getAsrConfig, getNlpConfig } from "./config";
+import { AsrConfig, getNlpConfig } from "./config";
 import axios from "axios";
 
 function onInit(app: App) {
@@ -34,7 +34,7 @@ export function Echo() {
 	const asrEngine = useMemo(
 		() =>
 			new VoskAsrEngine({
-				...getAsrConfig(),
+				...AsrConfig,
 			}),
 		[]
 	);

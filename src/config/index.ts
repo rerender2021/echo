@@ -6,6 +6,7 @@ import { INlpEngineOptions } from "../nlp/base";
 const defaultConfig = {
 	/** timeout for asr and translate api call*/
 	timeout: 3500,
+	asrPort: 8200
 };
 
 export function getConfig() {
@@ -25,12 +26,15 @@ export function getConfig() {
 	}
 }
 
-export function getAsrConfig(): IAsrEngineOptions {
+function getAsrConfig(): IAsrEngineOptions {
 	const config = getConfig();
 	return {
 		timeout: config?.timeout || defaultConfig.timeout,
+		asrPort: config?.asrPort || defaultConfig.asrPort
 	};
 }
+
+export const AsrConfig: IAsrEngineOptions = getAsrConfig();
 
 export function getNlpConfig(): INlpEngineOptions {
 	const config = getConfig();

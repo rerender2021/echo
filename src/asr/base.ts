@@ -5,6 +5,7 @@ export interface ISentence {
 
 export interface IAsrEngineOptions {
 	timeout: number
+	asrPort: number
 	onRecognize?: OnRecognize;
 	onError?: OnError;
 }
