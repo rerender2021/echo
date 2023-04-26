@@ -4,6 +4,7 @@ export interface ITranslateResult {
 
 export interface INlpEngineOptions {
 	timeout: number
+	nlpPort: number
 	onTranslate?: OnTranslate;
 	onError?: OnError;
 }
