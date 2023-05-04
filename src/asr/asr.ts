@@ -41,7 +41,9 @@ export class VoskAsrEngine implements IAsrEngine {
 				console.log("asrDir exists, start asr server", asrDir);
 
 				const port = this.options.asrPort;
-				const asr = childProcess.spawn(exePath, [`--port=${port}`], { windowsHide: true, detached: false /** hide console */ });
+				const voskPort = this.options.asrSocketPort;
+				
+				const asr = childProcess.spawn(exePath, [`--port=${port}`, `--vosk-port=${voskPort}`], { windowsHide: true, detached: false /** hide console */ });
 				this.asr = asr;
 				asr.stdout.on("data", (data) => {
 					console.log(`stdout: ${data}`);

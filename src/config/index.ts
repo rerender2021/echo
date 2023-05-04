@@ -7,6 +7,7 @@ const defaultConfig = {
 	/** timeout for asr and translate api call*/
 	timeout: 3500,
 	asrPort: 8200,
+	asrSocketPort: 8210,
 	nlpPort: 8100
 };
 
@@ -31,7 +32,8 @@ function getAsrConfig(): IAsrEngineOptions {
 	const config = getConfig();
 	return {
 		timeout: config?.timeout || defaultConfig.timeout,
-		asrPort: config?.asrPort || defaultConfig.asrPort
+		asrPort: config?.asrPort || defaultConfig.asrPort,
+		asrSocketPort: config?.asrSocketPort || defaultConfig.asrSocketPort
 	};
 }
 
