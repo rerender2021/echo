@@ -7,6 +7,8 @@ import { emptySentence, shadowRelated } from "../shadow";
 import { postasr } from "./postasr";
 
 enum AsrVersion {
+	v100,
+	v110,
 	v120,
 }
 
@@ -17,17 +19,31 @@ export class VoskAsrEngine implements IAsrEngine {
 
 	constructor(options: IAsrEngineOptions) {
 		this.options = options;
-		this.version = AsrVersion.v120;
+		this.version = AsrVersion.v100;
 	}
 
 	getAsrPath() {
+		const port = this.options.asrPort;
+		const voskPort = this.options.asrSocketPort;
+
 		const v120 = path.resolve(process.cwd(), "asr-server-v1.2.0");
 		if (fs.existsSync(v120)) {
 			this.version = AsrVersion.v120;
 			console.log("use asr-server-v1.2.0");
-			return { asrDir: v120, exePath: path.resolve(v120, "./ASR-API.exe") };
-		} else {
-			console.error("this version of echo requires >= asr-server-v1.2.0!");
+			return { asrDir: v120, exePath: path.resolve(v120, "./ASR-API.exe"), args: [`--port=${port}`, `--vosk-port=${voskPort}`] };
+		}
+
+		const v110 = path.resolve(process.cwd(), "asr-server-v1.1.0");
+		if (fs.existsSync(v110)) {
+			this.version = AsrVersion.v110;
+			console.log("use asr-server-v1.1.0");
+			return { asrDir: v110, exePath: path.resolve(v110, "./ASR-API.exe") };
+		}
+
+		const v100 = path.resolve(process.cwd(), "asr-server");
+		if (fs.existsSync(v100)) {
+			console.log("use asr-server-v1.0.0");
+			return { asrDir: v100, exePath: path.resolve(v100, "./ASR-API.exe") };
 		}
 
 		return { asrDir: "", exePath: "" };
@@ -35,15 +51,12 @@ export class VoskAsrEngine implements IAsrEngine {
 
 	async init() {
 		console.log("try to init vosk asr engine");
-		const { asrDir, exePath } = this.getAsrPath();
+		const { asrDir, exePath, args = [] } = this.getAsrPath();
 		if (asrDir && exePath) {
 			return new Promise((resolve, reject) => {
 				console.log("asrDir exists, start asr server", asrDir);
 
-				const port = this.options.asrPort;
-				const voskPort = this.options.asrSocketPort;
-				
-				const asr = childProcess.spawn(exePath, [`--port=${port}`, `--vosk-port=${voskPort}`], { windowsHide: true, detached: false /** hide console */ });
+				const asr = childProcess.spawn(exePath, args, { windowsHide: true, detached: false /** hide console */ });
 				this.asr = asr;
 				asr.stdout.on("data", (data) => {
 					console.log(`stdout: ${data}`);
@@ -78,15 +91,19 @@ export class VoskAsrEngine implements IAsrEngine {
 	private async asrApi(): Promise<string> {
 		const port = this.options.asrPort;
 
-		if (this.version === AsrVersion.v120) {
+		if (this.version === AsrVersion.v100) {
+			const response = await axios.post(`http://localhost:${port}/asr`, {}, { timeout: 2000 });
+			const result = response?.data?.result;
+			const data = JSON.parse(result || "{}");
+			const asrText = data.partial || "";
+			return asrText;
+		} else {
 			const response = await axios.post(`http://localhost:${port}/asr_queue`, {}, { timeout: 1000 });
 			const result = response?.data?.result;
 			const data = JSON.parse(result[result.length - 1] || "{}");
 			const asrText = data.partial || "";
 			return asrText;
 		}
-
-		return "";
 	}
 
 	async getAsrResult(): Promise<string> {
