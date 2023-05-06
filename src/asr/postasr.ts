@@ -1,5 +1,6 @@
 import axios from "axios";
 import { split } from "sentence-splitter";
+import { AsrConfig } from "../config";
 
 class SessionManager {
 	private prevTextLength: number = Number.MAX_SAFE_INTEGER;
@@ -20,7 +21,8 @@ let tokenIndex = 0;
 
 async function getTextToPunct(asrText: string) {
 	if (asrText.length >= maxTextLength) {
-		const punctResponse = await axios.post("http://localhost:8200/punct", { text: asrText }, { timeout: 1000 });
+		const port = AsrConfig.asrPort;
+		const punctResponse = await axios.post(`http://localhost:${port}/punct`, { text: asrText }, { timeout: 1000 });
 		const withPunct = punctResponse?.data?.text || "";
 		return withPunct;
 	} else {
