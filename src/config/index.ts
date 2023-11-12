@@ -8,7 +8,8 @@ const defaultConfig = {
 	timeout: 3500,
 	asrPort: 8200,
 	asrSocketPort: 8210,
-	nlpPort: 8100
+	nlpPort: 8100,
+	webUiPort: 8350
 };
 
 export function getConfig() {
@@ -25,6 +26,13 @@ export function getConfig() {
 	} catch (error) {
 		console.log(`parse config failed, ${error?.message}, use default config`);
 		return defaultConfig;
+	}
+}
+
+export function getWebUiConfig() {
+	const config = getConfig();
+	return {
+		port: config?.webUiPort ?? defaultConfig.webUiPort
 	}
 }
 

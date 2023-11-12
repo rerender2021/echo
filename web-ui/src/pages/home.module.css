@@ -1,0 +1,30 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header {
+    width: 100%;
+    height: 64px;
+    box-shadow: inset 0 -1px 0 #E3E5E7;
+    display: flex;
+    align-items: center;
+}
+
+.errors { 
+    width: 80%;
+    margin-top: 20px;
+}
+
+.logo {
+    height: 48px;
+    margin-left: 6px;
+}
+
+.subtitleList {
+    margin-top: 20px;
+    width: 80%;
+    height: 600px;
+}

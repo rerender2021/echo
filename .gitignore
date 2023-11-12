@@ -8,9 +8,16 @@ dist
 asr-server
 asr-server-*
 nlp-server
+nlp-server-*
 nlp-gpu-server
+nlp-gpu-server-*
+web-ui.png
+web-ui-*.png
 /config.json
 subtitle
 perf
 log
 *.exe
+
+echo-web-ui
+echo-web-ui-*

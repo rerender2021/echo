@@ -5,6 +5,7 @@ import childProcess from "child_process";
 import { IAsrEngine, IAsrEngineOptions, ISentence } from "./base";
 import { emptySentence, shadowRelated } from "../shadow";
 import { postasr } from "./postasr";
+import { inspectLog, ErrorEvent } from "../server";
 
 enum AsrVersion {
 	v100,
@@ -59,6 +60,10 @@ export class VoskAsrEngine implements IAsrEngine {
 				const asr = childProcess.spawn(exePath, args, { windowsHide: true, detached: false /** hide console */ });
 				this.asr = asr;
 				asr.stdout.on("data", (data) => {
+					const isError = inspectLog(data?.toString());
+					if(isError) {
+						reject(false);
+					}
 					console.log(`stdout: ${data}`);
 					if (data.includes("has been started")) {
 						console.log("asr server started");
@@ -67,6 +72,10 @@ export class VoskAsrEngine implements IAsrEngine {
 				});
 
 				asr.stderr.on("data", (data) => {
+					const isError = inspectLog(data?.toString());
+					if(isError) {
+						reject(false);
+					}
 					console.error(`stderr: ${data}`);
 				});
 
@@ -76,13 +85,15 @@ export class VoskAsrEngine implements IAsrEngine {
 				});
 			});
 		} else {
-			console.log("vosk asr server not exist");
+			console.log(ErrorEvent.AsrServerNotExist.log);
+			inspectLog(ErrorEvent.AsrServerNotExist.log);
 		}
 	}
 
 	async destroy() {
 		if (this.asr) {
 			console.log("exit asr server process");
+			this.asr.kill();
 			process.kill(this.asr?.pid);
 			process.exit();
 		}
