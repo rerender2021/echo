@@ -13,8 +13,7 @@
     "copy": "copyfiles -f ./node_modules/ave-ui/lib/* ./dist/lib && copyfiles ./assets/* ./dist",
     "bundle": "rollup --config rollup.config.js",
     "prerelease": "npm run build",
-    "release": "ave-pack pack",
-    "postrelease": "cd web-ui && npm run build"
+    "release": "ave-pack pack"
   },
   "author": "ivjtk; rerender2021",
   "license": "MIT",
