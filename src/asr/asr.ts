@@ -93,6 +93,7 @@ export class VoskAsrEngine implements IAsrEngine {
 	async destroy() {
 		if (this.asr) {
 			console.log("exit asr server process");
+			this.asr.kill();
 			process.kill(this.asr?.pid);
 			process.exit();
 		}

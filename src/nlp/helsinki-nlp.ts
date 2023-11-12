@@ -74,6 +74,7 @@ export class HelsinkiNlpEngine implements INlpEngine {
 	async destroy() {
 		if (this.nlp) {
 			console.log("exit nlp server process");
+			this.nlp.kill();
 			process.kill(this.nlp?.pid);
 			process.exit();
 		}

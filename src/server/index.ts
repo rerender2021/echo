@@ -143,6 +143,12 @@ export function emitFlushEvent() {
 	io.emit("flush");
 }
 
+export function shutdown() {
+	server.close();
+	io.close();
+	process.exit();
+}
+
 export function startEchoWebUI() {
 	const root = path.resolve(process.cwd(), "./echo-web-ui-v1.2.0");
 	app.use(express.static(root));
@@ -172,7 +178,23 @@ export function startEchoWebUI() {
 		});
 	});
 
-	server.listen(port, () => {
-		console.log(`echo web ui server listening on port ${port}`);
+	process.on('exit', function (){
+		shutdown();
+		console.log('process end!');
 	});
+
+	try {
+		server.listen(port, () => {
+			console.log(`echo web ui server listening on port ${port}`);
+		});
+
+		server.on('error', (error) => {
+			shutdown();
+			console.error(error);
+		});
+
+	} catch (error) {
+		console.error(error);
+	}
+
 }

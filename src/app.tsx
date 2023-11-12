@@ -8,7 +8,7 @@ import { iconResource } from "./resource";
 import { onMeasure, onTranslate, safe, shadowRelated } from "./shadow";
 import { AsrConfig, getWebUiConfig, NlpConfig } from "./config";
 import axios from "axios";
-import { emitFlushEvent, isInitError, startEchoWebUI } from "./server";
+import { emitFlushEvent, isInitError, shutdown, startEchoWebUI } from "./server";
 import { assetsPath, runtimeAssetsPath } from "./common";
 
 function onInit(app: App) {
@@ -50,6 +50,7 @@ export function Echo() {
 	const onClose = useCallback<IWindowComponentProps["onClose"]>(() => {
 		asrEngine.destroy();
 		nlpEngine.destroy();
+		shutdown();
 	}, []);
 
 	const onSetTopMost = useCallback<ICheckBoxComponentProps["onCheck"]>((sender) => {
