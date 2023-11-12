@@ -144,7 +144,7 @@ export function emitFlushEvent() {
 }
 
 export function startEchoWebUI() {
-	const root = path.resolve(process.cwd(), "./echo-web-ui");
+	const root = path.resolve(process.cwd(), "./echo-web-ui-v1.2.0");
 	app.use(express.static(root));
 
 	const { port } = getWebUiConfig();

@@ -20,3 +20,4 @@ log
 *.exe
 
 echo-web-ui
+echo-web-ui-*
