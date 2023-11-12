@@ -23,6 +23,7 @@
 
 - v1.1.0: [回声更新：支持使用GPU & 长句分解](https://www.bilibili.com/video/BV1Qa4y1M7jV/)
 
+- v1.2.0: [回声更新：支持历史字幕 & 自助问题排查](https://www.bilibili.com/video/BV1XN411g7tF/)
 
 # 使用说明
 
