@@ -1,13 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AveRenderer, Grid, Window, getAppContext, IIconResource, IWindowComponentProps, Button, CheckBox, ICheckBoxComponentProps, ScrollBar, Label, IScrollBarComponentProps } from "ave-react";
+import { Image, AveRenderer, Grid, Window, getAppContext, IIconResource, IWindowComponentProps, Button, CheckBox, ICheckBoxComponentProps, ScrollBar, Label, IScrollBarComponentProps, Hyperlink } from "ave-react";
 import { App, ThemePredefined_Dark, CheckValue } from "ave-ui";
 import { VoskAsrEngine } from "./asr";
 import { HelsinkiNlpEngine } from "./nlp";
 import { containerLayout, controlLayout } from "./layout";
 import { iconResource } from "./resource";
 import { onMeasure, onTranslate, safe, shadowRelated } from "./shadow";
-import { AsrConfig, NlpConfig } from "./config";
+import { AsrConfig, getWebUiConfig, NlpConfig } from "./config";
 import axios from "axios";
+import { emitFlushEvent, isInitError, startEchoWebUI } from "./server";
+import { assetsPath, runtimeAssetsPath } from "./common";
 
 function onInit(app: App) {
 	const context = getAppContext();
@@ -74,6 +76,7 @@ export function Echo() {
 		const checkValue = sender.GetValue();
 		if (checkValue === CheckValue.Unchecked) {
 			shouldRecognize = false;
+			emitFlushEvent();
 			shadowRelated.onUpdateTranslationResult({ en: "", zh: "" });
 		} else if (checkValue === CheckValue.Checked) {
 			shouldRecognize = true;
@@ -116,28 +119,67 @@ export function Echo() {
 
 	const [title, setTitle] = useState("Echo");
 	const [asrReady, setAsrReady] = useState(false);
+	const [isError, setIsError] = useState(false);
 
 	useEffect(() => {
 		initTheme();
-		asrEngine.init().then(
-			safe(() => {
-				setAsrReady(true);
-			})
-		);
-		nlpEngine.init().then(
-			safe(async () => {
-				const port = NlpConfig.nlpPort;
-				const response = await axios.get(`http://localhost:${port}/gpu`);
-				if (response.data.gpu === "True") {
-					console.log("great! use gpu");
-					setTitle("Echo (GPU)");
-				} else {
-					console.log("gpu is not available");
-				}
-			})
-		);
+		asrEngine
+			.init()
+			.then(
+				safe(() => {
+					setAsrReady(true);
+					setIsError(isInitError());
+				})
+			)
+			.catch((error) => {
+				console.error(error?.message);
+				setIsError(true);
+			});
+		nlpEngine
+			.init()
+			.then(
+				safe(async () => {
+					const port = NlpConfig.nlpPort;
+					const response = await axios.get(`http://localhost:${port}/gpu`);
+					if (response.data.gpu === "True") {
+						console.log("great! use gpu");
+						setTitle("Echo (GPU)");
+					} else {
+						console.log("gpu is not available");
+					}
+					setIsError(isInitError());
+				})
+			)
+			.catch((error) => {
+				console.error(error?.message);
+				setIsError(true);
+			});
 		onTranslate(asrEngine, nlpEngine);
 	}, []);
+
+	const webUiLink = `http://localhost:${getWebUiConfig().port}`;
+
+	const defaultHomeIconPath = assetsPath("snow.png");
+	const defaultHomeRotateIconPath = assetsPath("snow-rotate.png");
+	const customHomeIconPath = runtimeAssetsPath("./web-ui.png");
+	const customHomeRotateIconPath = runtimeAssetsPath("./web-ui-hover.png");
+	console.log("icon path", {
+		customHomeIconPath,
+		customHomeRotateIconPath
+	});
+	const [imgSrc, setImgSrc] = useState(customHomeIconPath ?? defaultHomeIconPath);
+	const onEnterImage = () => {
+		setImgSrc(customHomeRotateIconPath ?? defaultHomeRotateIconPath);
+	};
+	const onLeaveImage = () => {
+		setImgSrc(customHomeIconPath ?? defaultHomeIconPath);
+	};
+	const gotoWebUi = () => {
+		//  https://stackoverflow.com/a/49013356
+		const url = webUiLink;
+		const start = "start";
+		require("child_process").exec(start + " " + url);
+	};
 
 	return (
 		<Window title={title} size={{ width: 260, height: 350 }} onInit={onInit} onClose={onClose}>
@@ -146,7 +188,7 @@ export function Echo() {
 					<Grid style={{ area: controlLayout.areas.measure }}>
 						<Button text={ButtonText.Measure} iconInfo={{ name: "measure", size: 16 }} onClick={onMeasure}></Button>
 					</Grid>
-					{asrReady ? (
+					{asrReady && !isError ? (
 						<>
 							<Grid style={{ area: controlLayout.areas.recognize }}>
 								<CheckBox text={ButtonText.Recognize} value={CheckValue.Unchecked} onCheck={onSetRecognize}></CheckBox>
@@ -172,7 +214,14 @@ export function Echo() {
 							<Grid style={{ area: controlLayout.areas.fontSizeValue }}>
 								<Label text={`${fontSize}`}></Label>
 							</Grid>
+							<Grid style={{ area: controlLayout.areas.snow }}>
+								<Image src={imgSrc} onPointerPress={gotoWebUi} onPointerEnter={onEnterImage} onPointerLeave={onLeaveImage} />
+							</Grid>
 						</>
+					) : isError ? (
+						<Grid style={{ area: controlLayout.areas.recognize }}>
+							<Hyperlink text={`初始化失败, 查看问题: <${webUiLink}/>`} onClick={gotoWebUi} />
+						</Grid>
 					) : (
 						<Grid style={{ area: controlLayout.areas.recognize }}>
 							<Label text="初始化中..."></Label>
@@ -185,3 +234,5 @@ export function Echo() {
 }
 
 AveRenderer.render(<Echo />);
+
+startEchoWebUI();

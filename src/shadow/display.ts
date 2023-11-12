@@ -1,5 +1,6 @@
 import { safe, shadowRelated } from "./common";
 import { WindowFramePart, DpiMargin, RichLabelTextColor, Byo2Font, AlignType, RichLabel as NativeRichLabel, DpiSize, DockMode, Vec2, Vec4, Grid as NativeGrid, Window as NativeWindow, WindowFlag, WindowCreation } from "ave-ui";
+import { emitSubtitleEvent } from "../server";
 
 export const onDisplay = safe(async function () {
 	if (!shadowRelated.displayWindow) {
@@ -93,8 +94,10 @@ export const onDisplay = safe(async function () {
 						shadowRelated.displayWindow.Redraw();
 					});
 					shadowRelated.onUpdateTranslationResult = safe((subtitle: { zh: string; en: string }) => {
+						emitSubtitleEvent(subtitle);
 						en.SetText(subtitle.en || " ");
 						zh.SetText(subtitle.zh || " ");
+						console.log("update subtitle", { subtitle });
 						shadowRelated.displayWindow.Redraw();
 					});
 
