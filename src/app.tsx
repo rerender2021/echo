@@ -219,7 +219,7 @@ export function Echo() {
 								<Image src={imgSrc} onPointerPress={gotoWebUi} onPointerEnter={onEnterImage} onPointerLeave={onLeaveImage} />
 							</Grid>
 						</>
-					) : isError ? (
+					) : asrReady && isError ? (
 						<Grid style={{ area: controlLayout.areas.recognize }}>
 							<Hyperlink text={`初始化失败, 查看问题: <${webUiLink}/>`} onClick={gotoWebUi} />
 						</Grid>
